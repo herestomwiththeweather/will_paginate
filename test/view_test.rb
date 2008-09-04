@@ -195,10 +195,9 @@ class ViewTest < WillPaginate::ViewTestCase
   def test_page_entries_info_with_longer_class_name
     @template = '<%= page_entries_info collection %>'
     collection = ('a'..'z').to_a.paginate
-    collection.first.stubs(:class).returns(mock('class', :name => 'ProjectType'))
     
     paginate collection
-    assert @html_result.index('project types'), "expected <#{@html_result.inspect}> to mention 'project types'"
+    assert @html_result.index('strings'), "expected <#{@html_result.inspect}> to mention 'strings'"
   end
 
   def test_page_entries_info_with_single_page_collection
