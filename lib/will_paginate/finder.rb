@@ -63,6 +63,8 @@ module WillPaginate
       # and +count+ calls.
       def paginate(*args, &block)
         options = args.pop
+        options = options.dup unless options.nil?
+        
         page, per_page, total_entries = wp_parse_options(options)
         finder = (options[:finder] || 'find').to_s
 
