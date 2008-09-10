@@ -40,19 +40,21 @@ module WillPaginate
   #   
   #   # WillPaginate::Collection is now available for use
   class Collection < Array
-    attr_reader :current_page, :per_page, :total_entries, :total_pages
+    attr_reader :current_page, :per_page, :total_entries, :total_pages, :links
+    attr_writer :links
 
     # Arguments to the constructor are the current page number, per-page limit
     # and the total number of entries. The last argument is optional because it
     # is best to do lazy counting; in other words, count *conditionally* after
     # populating the collection using the +replace+ method.
-    def initialize(page, per_page, total = nil)
+    def initialize(page, per_page, total = nil, links = nil)
       @current_page = page.to_i
       raise InvalidPage.new(page, @current_page) if @current_page < 1
       @per_page = per_page.to_i
       raise ArgumentError, "`per_page` setting cannot be less than 1 (#{@per_page} given)" if @per_page < 1
       
       self.total_entries = total if total
+      self.links = links if links
     end
 
     # Just like +new+, but yields the object after instantiation and returns it
@@ -82,8 +84,8 @@ module WillPaginate
     #
     # The Array#paginate API has since then changed, but this still serves as a
     # fine example of WillPaginate::Collection usage.
-    def self.create(page, per_page, total = nil, &block)
-      pager = new(page, per_page, total)
+    def self.create(page, per_page, total = nil, links = nil, &block)
+      pager = new(page, per_page, total, links)
       yield pager
       pager
     end

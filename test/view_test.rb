@@ -313,6 +313,29 @@ class ViewTest < WillPaginate::ViewTestCase
     end
   end
 
+  @@group_collection = [
+    { :name => "Apple Tart", :fruit => "Apple"},
+    { :name => "Stewed Apples", :fruit => "Apple"},
+    { :name => "Banana Bread", :fruit => "Banana"},
+    ].paginate :per_page => 2, :links => [
+      { :value => "Apple", :page => 1},
+      { :value => "Banana", :page => 2}
+      ]
+  
+  ## pagination with direct links ##
+
+  def test_direct_links
+    paginate @@group_collection, :direct_link => "fruit" do |pagination|
+      assert_select 'a[href]', 3 do |elements|
+        validate_page_numbers [1, 2, 2], elements
+        assert_select elements.last, ':last-child', "Next &raquo;"
+      end
+      assert_select 'span', 1
+      assert_select 'span.disabled:first-child', '&laquo; Previous'
+      assert_equal '&laquo; Previous Apple Banana Next &raquo;', pagination.first.inner_text
+    end
+  end
+
   ## internal hardcore stuff ##
 
   class LegacyCollection < WillPaginate::Collection
@@ -332,6 +355,7 @@ class ViewTest < WillPaginate::ViewTestCase
     def test_collection_name_can_be_guessed
       collection = mock
       collection.expects(:total_pages).returns(1)
+      collection.stubs(:links)
       
       @template = '<%= will_paginate options %>'
       @controller.controller_name = 'developers'
@@ -359,4 +383,8 @@ class ViewTest < WillPaginate::ViewTestCase
     end
   end
   
+end
+
+class GroupedViewTest < WillPaginate::ViewTestCase
+
 end

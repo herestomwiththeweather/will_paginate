@@ -58,14 +58,15 @@ module WillPaginate
       # * <tt>:total_entries</tt> -- use only if you manually count total entries
       # * <tt>:count</tt> -- additional options that are passed on to +count+
       # * <tt>:finder</tt> -- name of the ActiveRecord finder used (default: "find")
+      # * <tt>:group_by</tt> -- name of an attribute to use to construct a group links array
       #
       # All other options (+conditions+, +order+, ...) are forwarded to +find+
       # and +count+ calls.
       def paginate(*args, &block)
         options = args.pop
         options = options.dup unless options.nil?
-        
-        page, per_page, total_entries = wp_parse_options(options)
+
+        page, per_page, total_entries, group_by = wp_parse_options(options)
         finder = (options[:finder] || 'find').to_s
 
         if finder == 'find'
@@ -76,12 +77,17 @@ module WillPaginate
         end
 
         WillPaginate::Collection.create(page, per_page, total_entries) do |pager|
-          count_options = options.except :page, :per_page, :total_entries, :finder
+          count_options = options.except :page, :per_page, :total_entries, :finder, :group_by
           find_options = count_options.except(:count).update(:offset => pager.offset, :limit => pager.per_page) 
           
           args << find_options
           # @options_from_last_find = nil
           pager.replace send(finder, *args, &block)
+          
+          if group_by
+            pager.links, total = wp_calc_links(args, finder, group_by, pager.per_page)
+            pager.total_entries = total unless pager.total_entries
+          end
           
           # magic counting for user convenience:
           pager.total_entries = wp_count(count_options, args, finder) unless pager.total_entries
@@ -179,6 +185,30 @@ module WillPaginate
         paginate(*args, &block)
       end
 
+      # Calculate a set of direct links for each distinct value of group_by. It does this
+      # by issuing a "SELECT #{group_by},COUNT(*) FROM ... GROUP BY #{group_by}" statement.
+      # Most of the work in this method is reconstructing the '...' part of the statement from
+      # the criteria parameters.
+      def wp_calc_links(args, finder, group_by, per_page)
+        options = args.slice(-1)
+
+        # Note: we assume that args is :all
+
+        find_options = options.except *[:count, :group, :limit, :offset, :select]
+        find_options[:select] = "COUNT(*), #{group_by}"
+        find_options[:group] = group_by
+
+        sql = construct_finder_sql(find_options)
+        results = connection.execute(sql)
+        total = 0
+        links = results.map do |r| 
+          page = (total / per_page) + 1
+          total += r[0].to_i 
+          { :value => r[1], :page => page }
+        end
+        [links, total]
+      end
+
       # Does the not-so-trivial job of finding out the total number of entries
       # in the database. It relies on the ActiveRecord +count+ method.
       def wp_count(options, args, finder)
@@ -235,7 +265,8 @@ module WillPaginate
         page     = options[:page] || 1
         per_page = options[:per_page] || self.per_page
         total    = options[:total_entries]
-        [page, per_page, total]
+        group_by = options[:group_by]
+        [page, per_page, total, group_by]
       end
 
     private

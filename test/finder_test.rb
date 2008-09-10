@@ -262,6 +262,21 @@ class FinderTest < ActiveRecordTestCase
     end
   end
 
+  ## group links
+  
+  def test_group_links
+    entries = User.paginate :page => nil, :per_page => 10, :order => "name", :group_by => "first_letter"
+    assert_equal 1, entries.current_page
+    assert_equal 2, entries.total_pages
+    assert_equal 13, entries.total_entries
+    assert entries.links
+    assert_equal 5, entries.links.size
+    [['A', 1], ['D', 1], ['F', 1], ['G', 2], ['J', 2]].each_with_index do | d, i |
+      assert_equal d[0], entries.links[i][:value]
+      assert_equal d[1], entries.links[i][:page]
+    end
+  end
+  
   ## misc ##
 
   def test_count_and_total_entries_options_are_mutually_exclusive
@@ -393,7 +408,7 @@ class FinderTest < ActiveRecordTestCase
       options = { :page => 1 }
       options.expects(:delete).never
       options_before = options.dup
-      
+
       Developer.paginate(options)
       assert_equal options, options_before
     end
