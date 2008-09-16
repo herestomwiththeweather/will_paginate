@@ -322,10 +322,10 @@ class ViewTest < WillPaginate::ViewTestCase
       { :value => "Banana", :page => 2}
       ]
   
-  ## pagination with direct links ##
+  ## pagination with group links ##
 
-  def test_direct_links
-    paginate @@group_collection, :direct_link => "fruit" do |pagination|
+  def test_group_links
+    paginate @@group_collection, :group_link => "fruit" do |pagination|
       assert_select 'a[href]', 3 do |elements|
         validate_page_numbers [1, 2, 2], elements
         assert_select elements.last, ':last-child', "Next &raquo;"

@@ -232,7 +232,7 @@ module WillPaginate
     def to_html
       # require 'ruby-debug'; debugger
       links = @options[:page_links] ? windowed_links : []
-      links << direct_links if @options[:group_links]
+      links << group_links if @options[:group_links]
       
       # previous/next buttons
       if @options[:next_previous_links]
@@ -258,10 +258,10 @@ module WillPaginate
     
   protected
 
-    # Assemble array of direct HTML links
-    def direct_links
+    # Assemble array of grouped HTML links
+    def group_links
       @collection.links.map do |link|
-        page_link_with_anchor(link[:page], link[:value])
+        page_link_with_anchor_or_span(link[:page], link[:value], 'missing')
       end
     end
     
@@ -320,8 +320,12 @@ module WillPaginate
       @template.link_to text, url_for(page), attributes
     end
 
-    def page_link_with_anchor(page, text, attributes = {})
-      @template.link_to text, url_for(page) + "##{text}", attributes
+    def page_link_with_anchor_or_span(page, text, span_class, attributes = {})
+      if page
+        @template.link_to text, url_for(page) + "##{text}", attributes
+      else
+        @template.content_tag :span, text, :class => span_class
+      end
     end
 
     def page_span(page, text, attributes = {})

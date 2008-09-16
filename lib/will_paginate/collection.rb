@@ -144,5 +144,25 @@ module WillPaginate
 
       result
     end
+    
+    # Ensure that everything in array is present in the links. For each entry which
+    # is missing, create a link with no page number (which will cause it to be rendered
+    # without a link).
+    def add_missing_links(a)
+      a.each_with_index do |k,i|
+        @links.insert(i, { :value => k }) unless contains_group(k)
+      end
+    end
+    
+protected
+
+    # Return true if the links array contains an element where the :value entry matches a
+    # particular value.
+    def contains_group(a)
+      @links.each do |l|
+        return true if l[:value] == a
+      end
+      false
+    end  
   end
 end
