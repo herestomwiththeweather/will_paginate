@@ -198,8 +198,8 @@ module WillPaginate
         find_options[:select] = "COUNT(*), #{group_by}"
         find_options[:group] = group_by
 
-        sql = construct_finder_sql(find_options)
-        results = connection.execute(sql)
+        results = wp_query_counts_by_group find_options
+        
         total = 0
         links = results.map do |r| 
           page = (total / per_page) + 1
@@ -207,6 +207,32 @@ module WillPaginate
           { :value => r[1], :page => page }
         end
         [links, total]
+      end
+
+      # Generate a query against the database which includes the "COUNT(*)" in the SELECT. This is a little
+      # tricky because we have to support the case where you're paginating through an association. Unfortunately,
+      # the standard ActiveRecord code doesn't support that so we end up generating the correct SQL here.
+      def wp_query_counts_by_group(options)
+        scope = scope(:find)
+        if options.has_key? :include
+          join_dependency = ActiveRecord::Associations::ClassMethods::JoinDependency.new(self, merge_includes(scope(:find, :include), options[:include]), options[:joins])
+          sql = "SELECT #{options[:select]} FROM #{(scope && scope[:from]) || options[:from] || quoted_table_name} "
+          sql << join_dependency.join_associations.collect{|join| join.association_join }.join
+          add_joins!(sql, options, scope)
+          add_conditions!(sql, options[:conditions], scope)
+          add_limited_ids_condition!(sql, options, join_dependency) if !using_limitable_reflections?(join_dependency.reflections) && ((scope && scope[:limit]) || options[:limit])
+
+          add_group!(sql, options[:group], scope)
+          add_order!(sql, options[:order], scope)
+          add_limit!(sql, options, scope) if using_limitable_reflections?(join_dependency.reflections)
+          add_lock!(sql, options, scope)
+
+          sql = sanitize_sql(sql)
+        else
+          sql = construct_finder_sql(options)
+        end
+
+        connection.execute(sql)
       end
 
       # Does the not-so-trivial job of finding out the total number of entries

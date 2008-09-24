@@ -277,6 +277,24 @@ class FinderTest < ActiveRecordTestCase
     end
   end
   
+  def test_group_by_associations_with_include
+    project = projects(:active_record)
+
+    entries = project.topics.paginate \
+      :page     => 1, 
+      :include  => :replies,  
+      :conditions => "replies.content LIKE 'Nice%' ", 
+      :per_page => 10,
+      :group_by => "replies.content"
+
+    expected = Topic.find :all, 
+      :include => 'replies', 
+      :conditions => "project_id = #{project.id} AND replies.content LIKE 'Nice%' ", 
+      :limit   => 10
+
+    assert_equal expected, entries.to_a
+  end
+
   ## misc ##
 
   def test_count_and_total_entries_options_are_mutually_exclusive
