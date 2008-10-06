@@ -201,10 +201,11 @@ module WillPaginate
         results = wp_query_counts_by_group find_options
         
         total = 0
-        links = results.map do |r| 
+        links = []
+        results.each do |r| 
           page = (total / per_page) + 1
           total += r[0].to_i 
-          { :value => r[1], :page => page }
+          links << { :value => r[1], :page => page }
         end
         [links, total]
       end
