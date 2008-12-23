@@ -219,7 +219,7 @@ module WillPaginate
           join_dependency = ActiveRecord::Associations::ClassMethods::JoinDependency.new(self, merge_includes(scope(:find, :include), options[:include]), options[:joins])
           sql = "SELECT #{options[:select]} FROM #{(scope && scope[:from]) || options[:from] || quoted_table_name} "
           sql << join_dependency.join_associations.collect{|join| join.association_join }.join
-          add_joins!(sql, options, scope)
+          add_joins!(sql, options[:joins], scope)
           add_conditions!(sql, options[:conditions], scope)
           add_limited_ids_condition!(sql, options, join_dependency) if !using_limitable_reflections?(join_dependency.reflections) && ((scope && scope[:limit]) || options[:limit])
 
@@ -277,9 +277,9 @@ module WillPaginate
                   # scope_out adds a 'with_finder' method which acts like with_scope, if it's present
                   # then execute the count with the scoping provided by the with_finder
                   send(scoper, &counter)
-                elsif match = /^find_(all_by|by)_([_a-zA-Z]\w*)$/.match(finder)
+                elsif finder =~ /^find_(all_by|by)_([_a-zA-Z]\w*)$/
                   # extract conditions from calls like "paginate_by_foo_and_bar"
-                  attribute_names = extract_attribute_names_from_match(match)
+                  attribute_names = $2.split('_and_')
                   conditions = construct_attributes_from_arguments(attribute_names, args)
                   with_scope(:find => { :conditions => conditions }, &counter)
                 else
